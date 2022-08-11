@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "locust.fullname" . }}-script
+  labels:
+    {{- include "locust.labels" . | nindent 4 }}
+data:
+  locustfile.py: |
+    {{- .Values.locustfile | nindent 4 }}

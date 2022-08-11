@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "locust.fullname" . }}-master
+  labels:
+    {{- include "locust.labels" . | nindent 4 }}
+    component: {{ include "locust.fullname" . }}-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "locust.selectorLabels" . | nindent 6 }}
+      component: {{ include "locust.fullname" . }}-master
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/locust-script.yaml") . | sha256sum }}
+      {{- with .Values.master.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "locust.selectorLabels" . | nindent 8 }}
+        component: {{ include "locust.fullname" . }}-master
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "locust.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.master.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: locust-script
+          configMap:
+            name: {{ include "locust.fullname" . }}-script
+      containers:
+        - name: locust
+          securityContext:
+            {{- toYaml .Values.master.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: [ "--master" ]
+          ports:
+            - name: comm
+              containerPort: 5557
+              protocol: TCP
+            - name: comm-2
+              containerPort: 5558
+              protocol: TCP
+            - name: http
+              containerPort: 8089
+              protocol: TCP
+          volumeMounts:
+            - name: locust-script
+              mountPath: /home/locust
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.master.resources | nindent 12 }}
+      {{- with .Values.master.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.master.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.master.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

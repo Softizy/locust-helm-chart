@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "locust.fullname" . }}
+  labels:
+    {{- include "locust.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.master.service.type }}
+  ports:
+    - port: {{ .Values.master.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - name: comm
+      port: 5557
+      targetPort: comm
+      protocol: TCP
+    - name: comm-2
+      port: 5558
+      targetPort: comm
+      protocol: TCP
+  selector:
+    {{- include "locust.selectorLabels" . | nindent 4 }}
